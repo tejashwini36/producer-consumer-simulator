@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Producer Consumer Simulator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Producer–Consumer Problem Simulator</h1>
+  <p>Operating Systems Project</p>
+
+  <label for="capacity">Buffer Capacity:</label>
+  <select id="capacity">
+    <option value="3">3</option>
+    <option value="5" selected>5</option>
+    <option value="10">10</option>
+  </select>
+
+  <div>
+    <button id="produce">Produce Item</button>
+    <button id="consume">Consume Item</button>
+    <button id="reset">Reset</button>
+
+  <button id="startAuto">Start Automatic</button>
+<button id="stopAuto" disabled>Stop Automatic</button>
+  </div>
+
+  <h2>Shared Buffer</h2>
+  <div id="buffer"></div>
+
+  <h2>Buffer Statistics</h2>
+  <p>Items in buffer: <span id="count">0</span></p>
+  <p>Produced: <span id="produced">0</span></p>
+  <p>Consumed: <span id="consumed">0</span></p>
+  <h2>OS Synchronization Status</h2>
+
+<div class="sync-panel">
+  <div class="sync-card">
+    <h3>Empty Semaphore</h3>
+    <p>Available slots: <strong id="emptyCount">5</strong></p>
+  </div>
+
+  <div class="sync-card">
+    <h3>Full Semaphore</h3>
+    <p>Available items: <strong id="fullCount">0</strong></p>
+  </div>
+
+  <div class="sync-card">
+    <h3>Mutex Lock</h3>
+    <p>Status: <strong id="mutexStatus">Unlocked</strong></p>
+  </div>
+</div>
+<h2>Event Log</h2>
+  <div id="log"></div>
+ <script src="script.js"></script>
+</body>
+</html>

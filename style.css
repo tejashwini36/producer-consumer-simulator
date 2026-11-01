@@ -1,0 +1,87 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #f1f5f9;
+  color: #172033;
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 20px;
+}
+
+h1 {
+  color: #1d4ed8;
+}
+
+button, select {
+  padding: 10px 14px;
+  margin: 6px 4px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button {
+  background: #2563eb;
+  color: white;
+}
+
+#buffer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.slot {
+  width: 100px;
+  min-height: 65px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #94a3b8;
+  border-radius: 10px;
+  background: white;
+}
+
+.slot.filled {
+  background: #dcfce7;
+  border-color: #16a34a;
+}
+
+#log {
+  background: #172033;
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  min-height: 80px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.sync-panel {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 15px 0;
+}
+
+.sync-card {
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.sync-card h3 {
+  font-size: 15px;
+  color: #1d4ed8;
+}
+
+.sync-card p {
+  font-size: 14px;
+}
+
+@media (max-width: 600px) {
+  .sync-panel {
+    grid-template-columns: 1fr;
+  }
+}

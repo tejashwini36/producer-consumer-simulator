@@ -1,3 +1,6 @@
+
+const API_BASE = "https://producer-consumer-simulator-1s04.onrender.com";
+
 const capacitySelect = document.getElementById("capacity");
 const bufferElement = document.getElementById("buffer");
 const countElement = document.getElementById("count");
@@ -8,11 +11,14 @@ const emptyCountElement = document.getElementById("emptyCount");
 const fullCountElement = document.getElementById("fullCount");
 const mutexStatusElement = document.getElementById("mutexStatus");
 
-let capacity = Number(capacitySelect.value);
+let capacity = 5;
 let buffer = [];
 let produced = 0;
 let consumed = 0;
-let nextId = 1;
+let automaticMode = false;
+let autoTimer = null;
+let autoTurn = "produce";
+let busy = false;
 
 function log(message) {
   const line = document.createElement("p");
@@ -41,64 +47,114 @@ function render() {
   producedElement.textContent = produced;
   consumedElement.textContent = consumed;
   emptyCountElement.textContent = capacity - buffer.length;
-fullCountElement.textContent = buffer.length;
-mutexStatusElement.textContent = "Unlocked";
+  fullCountElement.textContent = buffer.length;
+  mutexStatusElement.textContent = "Unlocked";
+}
+
+async function refreshState() {
+  try {
+    const response = await fetch(`${API_BASE}/state`);
+
+    if (!response.ok) {
+      throw new Error("Could not load simulation state.");
+    }
+
+    const state = await response.json();
+
+    capacity = state.capacity;
+    buffer = state.buffer;
+    produced = state.produced;
+    consumed = state.consumed;
+
+    // The Java backend currently uses a fixed capacity of 5.
+    if ([...capacitySelect.options].some(
+      option => Number(option.value) === capacity
+    )) {
+      capacitySelect.value = String(capacity);
+    }
+
+    capacitySelect.disabled = true;
+
+    render();
+
+    logElement.replaceChildren();
+
+    state.log.forEach(message => {
+      const line = document.createElement("p");
+      line.textContent = message;
+      logElement.appendChild(line);
+    });
+
+  } catch (error) {
+    console.error(error);
+    log("Cannot connect to the backend. Check your internet connection and Render service.");
+  }
+}
+
+async function performAction(action) {
+  if (busy) return;
+
+  busy = true;
+
+  try {
+    const response = await fetch(`${API_BASE}/${action}`, {
+      method: "POST"
+    });
+
+    const state = await response.json();
+
+    if (!response.ok && response.status !== 409) {
+      throw new Error(state.error || "Request failed.");
+    }
+
+    capacity = state.capacity;
+    buffer = state.buffer;
+    produced = state.produced;
+    consumed = state.consumed;
+
+    render();
+
+    logElement.replaceChildren();
+
+    state.log.forEach(message => {
+      const line = document.createElement("p");
+      line.textContent = message;
+      logElement.appendChild(line);
+    });
+
+  } catch (error) {
+    console.error(error);
+    log("Backend request failed. Please try again.");
+  } finally {
+    busy = false;
+  }
 }
 
 document.getElementById("produce").addEventListener("click", () => {
-  if (buffer.length >= capacity) {
-    log("Buffer FULL: producer cannot add an item.");
-    return;
-  }
-
-  const item = "Item-" + nextId++;
-  buffer.push(item);
-  produced++;
-
-  log("Produced " + item);
-  render();
+  performAction("produce");
 });
 
 document.getElementById("consume").addEventListener("click", () => {
-  if (buffer.length === 0) {
-    log("Buffer EMPTY: consumer has no item.");
-    return;
-  }
-
-  const item = buffer.shift();
-  consumed++;
-
-  log("Consumed " + item);
-  render();
+  performAction("consume");
 });
 
-capacitySelect.addEventListener("change", () => {
-  const newCapacity = Number(capacitySelect.value);
-
-  if (buffer.length > newCapacity) {
-    log("Consume items before reducing the capacity.");
-    capacitySelect.value = String(capacity);
-    return;
-  }
-
-  capacity = newCapacity;
-  render();
+document.getElementById("reset").addEventListener("click", async () => {
+  stopAutomatic(false);
+  await performAction("reset");
 });
 
-document.getElementById("reset").addEventListener("click", () => {
-  buffer = [];
-  produced = 0;
-  consumed = 0;
-  nextId = 1;
+function runAutomatic() {
+  if (!automaticMode) return;
 
-  log("Simulation reset.");
-  render();
-});
-render();
-log("Simulator ready.");
-let automaticMode = false;
-let autoTimer = null;
-let autoTurn = "produce";
+  const action = autoTurn;
+  autoTurn = autoTurn === "produce" ? "consume" : "produce";
+
+  performAction(action).finally(() => {
+    if (automaticMode) {
+      autoTimer = setTimeout(runAutomatic, 1000);
+    }
+  });
+}
 
 document.getElementById("startAuto").addEventListener("click", () => {
   if (automaticMode) return;
@@ -113,56 +169,24 @@ document.getElementById("startAuto").addEventListener("click", () => {
   runAutomatic();
 });
 
-function runAutomatic() {
-  if (!automaticMode) return;
-
-  if (autoTurn === "produce") {
-    if (buffer.length < capacity) {
-      const item = "Item-" + nextId++;
-      buffer.push(item);
-      produced++;
-      log("Producer created " + item);
-    } else {
-      log("Producer waiting: buffer full.");
-    }
-
-    autoTurn = "consume";
-  } else {
-    if (buffer.length > 0) {
-      const item = buffer.shift();
-      consumed++;
-      log("Consumer processed " + item);
-    } else {
-      log("Consumer waiting: buffer empty.");
-    }
-
-    autoTurn = "produce";
-  }
-
-  render();
-  autoTimer = setTimeout(runAutomatic, 1000);
-}
-
-document.getElementById("stopAuto").addEventListener("click", () => {
+function stopAutomatic(showMessage = true) {
   automaticMode = false;
   clearTimeout(autoTimer);
 
   document.getElementById("startAuto").disabled = false;
   document.getElementById("stopAuto").disabled = true;
 
-  log("Automatic simulation stopped.");
-});
-capacitySelect.addEventListener("change", () => {
-  const newCapacity = Number(capacitySelect.value);
-
-  if (newCapacity < buffer.length) {
-    log("Cannot reduce capacity below the current number of items.");
-    capacitySelect.value = capacity;
-    return;
+  if (showMessage) {
+    log("Automatic simulation stopped.");
   }
+}
 
-  capacity = newCapacity;
-  render();
-
-  log("Buffer capacity changed to " + capacity);
+document.getElementById("stopAuto").addEventListener("click", () => {
+  stopAutomatic();
 });
+
+document.getElementById("stopAuto").disabled = true;
+
+// Refresh state so multiple visitors see the backend's current state.
+refreshState();
+setInterval(refreshState, 3000);

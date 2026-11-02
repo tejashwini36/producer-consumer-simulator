@@ -338,9 +338,13 @@ public class ProducerConsumerServer {
     }
 
     public static void main(String[] args) throws IOException {
-        HttpServer server = HttpServer.create(
-                new InetSocketAddress("localhost", 8080), 0
-        );
+       int port = Integer.parseInt(
+    System.getenv().getOrDefault("PORT", "8080")
+);
+
+HttpServer server = HttpServer.create(
+    new InetSocketAddress("0.0.0.0", port), 0
+);
 
         server.createContext("/", ProducerConsumerServer::handle);
 
@@ -351,7 +355,7 @@ public class ProducerConsumerServer {
         server.start();
 
         System.out.println("Producer-Consumer backend started.");
-        System.out.println("State: http://localhost:8080/state");
+        System.out.println("Server port: " + port);
         System.out.println("Capacity: " + CAPACITY);
         System.out.println("Press Ctrl+C to stop.");
     }
